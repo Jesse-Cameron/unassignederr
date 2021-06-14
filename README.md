@@ -1,0 +1,1 @@
+# golang-nil-error-struct
