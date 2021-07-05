@@ -1,9 +1,8 @@
 package main
 
 import (
+	nilerr "github.com/Jesse-Cameron/golang-nil-error-struct"
 	"golang.org/x/tools/go/analysis/singlechecker"
-
-	"github.com/Jesse-Cameron/golang-nil-err-pointer/nilerr"
 )
 
 func main() {

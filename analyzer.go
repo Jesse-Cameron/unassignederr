@@ -1,4 +1,4 @@
-package nilerr
+package analyzer
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 
 var NilAnalyzer = &analysis.Analyzer{
 	Name: "nil_error_struct",
-	Doc:  "Nil Error Struct\n\n",
+	Doc:  "Nil Error Struct \n\n",
 	Run:  run,
 }
 
@@ -20,57 +20,70 @@ var errTyp = types.Universe.Lookup("error").Type().Underlying().(*types.Interfac
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
-		ast.Inspect(file, func(n ast.Node) bool {
-			fd, ok := n.(*ast.FuncDecl)
-			if !ok {
-				return true
-			}
-
-			if !funcReturnsError(pass, fd.Type.Results.List) {
-				return false
-			}
-
-			errorStatementIndex := 0
-			errorStatementName := ""
-
-			funcStmts := fd.Body.List
-			for i, stmt := range funcStmts {
-
-				// if there is a var statement
-				genDecl, found := isVarStatment(stmt)
-				if !found {
-					continue
-				}
-
-				for _, spec := range genDecl.Specs {
-					foundName, found := isErrorStruct(pass, spec)
-					if !found {
-						return true
-					}
-
-					errorStatementName = foundName
-					errorStatementIndex = i + 1
-				}
-
-				// this is sequential and weird
-				for i := errorStatementIndex; i <= len(funcStmts); i++ {
-					if retStmt, ok := funcStmts[i].(*ast.ReturnStmt); ok {
-						if errorStatementPos, ok := returnsInvalidError(pass, errorStatementName, retStmt); ok {
-							// we found an invalid return
-							pass.Reportf(errorStatementPos.NamePos, "uninitialized custom error returned %q",
-								render(pass.Fset, errorStatementPos))
-							return false
-						}
-					}
-				}
-
-			}
-
-			return true
+		ast.Inspect(file, func(node ast.Node) bool {
+			return parseNode(pass, node)
 		})
 	}
 
 	return nil, nil
+}
+
+// parseNode checks a node to see if it contains a given error
+func parseNode(pass *analysis.Pass, node ast.Node) bool {
+	// if is a function declaration
+	fd, ok := node.(*ast.FuncDecl)
+	if !ok {
+		return true
+	}
+
+	if !funcReturnsError(pass, fd.Type.Results.List) {
+		return true
+	}
+
+	errorStatementNames := []string{}
+	errorStatementFound := false
+
+	// search for an error declaration
+	funcStmts := fd.Body.List
+	for i, stmt := range funcStmts {
+		// if we've found an error
+		if errorStatementFound {
+			//	search for the returned error
+
+			if retStmt, ok := funcStmts[i].(*ast.ReturnStmt); ok {
+				if errorStatementPos, ok := returnsInvalidError(pass, errorStatementNames, retStmt); ok {
+					// we found an invalid return
+					pass.Reportf(errorStatementPos.NamePos, "uninitialized custom error returned %q",
+						render(pass.Fset, errorStatementPos))
+					return false
+				}
+			}
+
+		} else {
+			//	search for an error
+			// if there is a var statement
+			genDecl, found := isVarStatment(stmt)
+			if !found {
+				continue
+			}
+
+			// if the var statement declares an error struct
+			for _, spec := range genDecl.Specs {
+				foundName, found := isErrorStruct(pass, spec)
+				if !found {
+					continue
+				}
+
+				errorStatementNames = foundName
+				errorStatementFound = true
+				continue
+			}
+
+		}
+
+	}
+
+	return true
 }
 
 func isVarStatment(stmt ast.Stmt) (*ast.GenDecl, bool) {
@@ -110,47 +123,60 @@ func funcReturnsError(pass *analysis.Pass, list []*ast.Field) bool {
 	return false
 }
 
-func returnsInvalidError(pass *analysis.Pass, name string, returnStmt *ast.ReturnStmt) (*ast.Ident, bool) {
+func returnsInvalidError(pass *analysis.Pass, names []string, returnStmt *ast.ReturnStmt) (*ast.Ident, bool) {
 	for _, result := range returnStmt.Results {
 		if identifier, ok := result.(*ast.Ident); ok {
-			if identifier.Name == name {
-				return identifier, true
+			for _, name := range names {
+				if identifier.Name == name {
+					return identifier, true
+				}
 			}
 		}
 	}
 	return nil, false
 }
 
-func isErrorStruct(pass *analysis.Pass, spec ast.Spec) (string, bool) {
+func isErrorStruct(pass *analysis.Pass, spec ast.Spec) ([]string, bool) {
 	v, ok := spec.(*ast.ValueSpec)
 	if !ok {
-		return "", false
+		return []string{}, false
 	}
 
 	if v.Type == nil {
-		return "", false
+		return []string{}, false
 	}
 
 	// if the initial values are non-nil
 	if v.Values != nil {
-		return "", false
+		return []string{}, false
 	}
 
-	// TODO: check if it not an error first
-	p, ok := pass.TypesInfo.TypeOf(v.Type).Underlying().(*types.Pointer)
-	if !ok {
-		return "", false
+	specType := pass.TypesInfo.TypeOf(v.Type)
+
+	// if it is a pointer, get the elment type
+	if pointer, ok := specType.(*types.Pointer); ok {
+		specType = pointer.Elem()
 	}
 
 	// check if it's implements the error type
-	if n, ok := p.Elem().(*types.Named); ok {
+	if n, ok := specType.(*types.Named); ok {
 		if !types.Implements(n, errTyp) {
-			return "", false
+			return []string{}, false
 		}
+		// not sure why there is more than one name here ??
+		return getNamesFromNames(v.Names), true
+	}
+	return []string{}, false
+}
+
+func getNamesFromNames(nameList []*ast.Ident) []string {
+	stringNames := make([]string, len(nameList))
+
+	for i, ident := range nameList {
+		stringNames[i] = ident.Name
 	}
 
-	// not sure why there is more than one name here
-	return v.Names[0].Name, true
+	return stringNames
 }
 
 // render returns the pretty-print of the given node
