@@ -26,4 +26,8 @@ func TestErrorFuncs(t *testing.T) {
 
 	err = a.MakeErrorListDecl()
 	assert.False(t, err == nil)
+
+	err = a.ErrorAssigned()
+	assert.True(t, err != nil)
+	assert.True(t, err.Error() == "error")
 }

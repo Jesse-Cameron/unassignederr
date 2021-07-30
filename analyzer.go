@@ -48,8 +48,16 @@ func parseNode(pass *analysis.Pass, node ast.Node) bool {
 	for i, stmt := range funcStmts {
 		// if we've found an error
 		if errorStatementFound {
-			//	search for the returned error
+			// if the error becomes assigned
+			if assignStmt, ok := funcStmts[i].(*ast.AssignStmt); ok {
+				errorsLeftOver := isErrAssigned(assignStmt.Lhs, errorStatementNames)
+				if len(errorsLeftOver) == 0 {
+					return false
+				}
+				errorStatementNames = errorsLeftOver
+			}
 
+			//	search for the returned error
 			if retStmt, ok := funcStmts[i].(*ast.ReturnStmt); ok {
 				if errorStatementPos, ok := returnsInvalidError(pass, errorStatementNames, retStmt); ok {
 					// we found an invalid return
@@ -177,6 +185,44 @@ func getNamesFromNames(nameList []*ast.Ident) []string {
 	}
 
 	return stringNames
+}
+
+// isErrAssigned checks the expression to see if assigned to any of the errname
+// removes them if they do
+func isErrAssigned(exprs []ast.Expr, errNames []string) []string {
+	assignedNames := make([]string, len(exprs))
+	for _, assignedExpr := range exprs {
+		if ident, ok := assignedExpr.(*ast.Ident); ok {
+			assignedNames = append(assignedNames, ident.Name)
+		}
+	}
+
+	// get all of the assigned names that are in the errNames
+	subset := sliceSubset(errNames, assignedNames)
+
+	return subset
+}
+
+// remove any items from a that are in b
+func sliceSubset(a []string, b []string) []string {
+	results := make([]string, len(b))
+
+	for _, aValue := range a {
+		if !existsInList(b, aValue) {
+			results = append(results, aValue)
+		}
+	}
+
+	return results
+}
+
+func existsInList(list []string, search string) bool {
+	for _, item := range list {
+		if item == search {
+			return true
+		}
+	}
+	return false
 }
 
 // render returns the pretty-print of the given node

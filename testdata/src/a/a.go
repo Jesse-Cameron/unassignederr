@@ -1,9 +1,11 @@
 package a
 
-type naughtyError struct{}
+type naughtyError struct {
+	msg string
+}
 
 func (ne naughtyError) Error() string {
-	return "oh no"
+	return ne.msg
 }
 
 func MakePointerError() error {
@@ -22,6 +24,25 @@ func MakeError() error {
 	var badErr naughtyError
 	// returns a `nil` error
 	return badErr // want "uninitialized custom error returned \"badErr\""
+}
+
+func ErrorAssigned() error {
+	var barErrReassigned naughtyError
+
+	barErrReassigned = naughtyError{msg: "error"}
+
+	return barErrReassigned
+}
+
+func MultiErrorAssigned() error {
+	var barErr, fooErr *naughtyError
+
+	fooErr = &naughtyError{msg: "error"}
+	if fooErr != nil {
+		return fooErr
+	}
+
+	return barErr // want "uninitialized custom error returned \"barErr\""
 }
 
 func MakeErrorParenDecl() error {
