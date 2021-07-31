@@ -3,7 +3,7 @@ package analyzer
 import (
 	"testing"
 
-	"github.com/Jesse-Cameron/golang-nil-error-struct/testdata/src/a"
+	"github.com/Jesse-Cameron/unassignederr/testdata/src/a"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/tools/go/analysis/analysistest"
@@ -11,7 +11,7 @@ import (
 
 func TestAnalyzer(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, NilAnalyzer, "a")
+	analysistest.Run(t, testdata, UnassignedErrAnalyzer, "a")
 }
 
 func TestErrorFuncs(t *testing.T) {

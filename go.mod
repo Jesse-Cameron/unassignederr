@@ -1,4 +1,4 @@
-module github.com/Jesse-Cameron/golang-nil-error-struct
+module github.com/Jesse-Cameron/unassignederr
 
 go 1.16
 

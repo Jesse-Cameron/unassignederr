@@ -9,11 +9,13 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-var NilAnalyzer = &analysis.Analyzer{
-	Name: "nil_error_struct",
-	Doc:  "Nil Error Struct \n\n",
+var UnassignedErrAnalyzer = &analysis.Analyzer{
+	Name: "unassignederr",
+	Doc:  DocString,
 	Run:  run,
 }
+
+const DocString = "A tool for identifying when a uninitialised error struct is being incorrectly returned.\n\nunassignederr checks for functions where there is a returned an error struct that hasn't been initialized. Usually this can be resolved by ensuring that the variable is initialiased. Either in the same statement, or in subsequent lines."
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
