@@ -29,7 +29,9 @@ func MakeError() error {
 func ErrorAssigned() error {
 	var barErrReassigned naughtyError
 
-	barErrReassigned = naughtyError{msg: "error"}
+	if true {
+		barErrReassigned = naughtyError{msg: "error"}
+	}
 
 	return barErrReassigned
 }
