@@ -2,7 +2,7 @@
 
 `unassignederr` is a tool for checking for returned errors which have been left unassigned or uninitialized.
 
-Golang draws a distinction betweens a between a nil and a nil interface. This behaviour has been well documented in the [Golang FAQ](https://golang.org/doc/faq#nil_error). It's something that easily could be missed. This linting rule is indended to highlight cases where you may accidentally return an error struct that hasn't been initialized.
+Golang draws a distinction betweens a between a nil and a nil interface. This behaviour has been well documented in the [Golang FAQ](https://golang.org/doc/faq#nil_error). It's something that easily could be missed. This linting rule is intended to highlight cases where you may accidentally return an error struct that hasn't been initialized.
 
 **Bad 😿**
 
