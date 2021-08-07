@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/Jesse-Cameron/unassignederr/testdata/src/a"
-
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/tools/go/analysis/analysistest"
 )

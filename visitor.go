@@ -29,7 +29,7 @@ func (v *errorVisitor) Visit(node ast.Node) ast.Visitor {
 		switch n := node.(type) {
 		case *ast.ReturnStmt:
 			// if we are returning the error
-			errorStatement, ok := returnsInvalidError(v.pass, v.ErrStatementNames, n)
+			errorStatement, ok := returnsInvalidError(v.ErrStatementNames, n)
 			if ok {
 				v.ErrStatement = errorStatement
 				return nil // early return as we've found invalid return
@@ -74,8 +74,8 @@ func foundErrorStruct(pass *analysis.Pass, node ast.Node) ([]string, bool) {
 		if found {
 			return foundName, true
 		}
-
 	}
+
 	return []string{}, false
 }
 
@@ -88,7 +88,6 @@ func isVarStatment(stmt ast.Node) (*ast.GenDecl, bool) {
 	genDecl, ok := declStmt.Decl.(*ast.GenDecl)
 	if !ok {
 		return nil, false
-
 	}
 
 	if genDecl.Tok == token.VAR {
@@ -116,7 +115,7 @@ func funcReturnsError(pass *analysis.Pass, list []*ast.Field) bool {
 	return false
 }
 
-func returnsInvalidError(pass *analysis.Pass, names []string, returnStmt *ast.ReturnStmt) (*ast.Ident, bool) {
+func returnsInvalidError(names []string, returnStmt *ast.ReturnStmt) (*ast.Ident, bool) {
 	for _, result := range returnStmt.Results {
 		if identifier, ok := result.(*ast.Ident); ok {
 			for _, name := range names {
@@ -189,7 +188,7 @@ func isErrAssigned(exprs []ast.Expr, errNames []string) []string {
 }
 
 // remove any items from a that are in b
-func sliceSubset(a []string, b []string) []string {
+func sliceSubset(a, b []string) []string {
 	results := []string{}
 
 	for _, aValue := range a {
